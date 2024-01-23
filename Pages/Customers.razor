@@ -1,0 +1,149 @@
+﻿@page "/customers"
+@using LibrarySystem.Services
+@using LibrarySystem.Data.Models
+@using LibrarySystem.Configuration
+@inject CustomerService customerService;
+@inject NavigationManager manager;
+
+<h3>Customers</h3>
+<br />
+<h4>Here you can register customers</h4>
+<br />
+
+<EditForm Model="@customer" OnValidSubmit="HandleRegister">
+	<p>
+		<label for="NameInput">Name:&nbsp;&nbsp;&nbsp;</label>
+		<InputText id="NameInput" @bind-Value="@customer.Name"></InputText>
+	</p>
+	<p>
+		<label for="AddressInput">Address:</label>
+		<InputText id="AddressInput" @bind-Value="@customer.Address"></InputText>
+	</p>
+	<p>
+		<button type="submit" @onclick="StateHasChanged">Register</button>
+	</p>
+</EditForm>
+
+<br />
+<h3>Remove a customer</h3>
+<br />
+
+<EditForm Model="@removeACustomer" OnValidSubmit="RemoveACustomer">
+	<p>
+		<label for="IdInput">Id:</label>
+		<InputNumber id="IdInput" @bind-Value="@removeACustomer"></InputNumber>
+	</p>
+
+</EditForm>
+
+<DataGridComponent TItem="Customer" 
+				   DataItems="listOfCustomers" 
+				   Columns="columnsDefinition"
+				   Paging="@(new PagingConfig {
+								 Enabled = true,
+								 CustomePager= false,
+								 PageSize = 5})">
+</DataGridComponent>
+
+<br />
+<div align="right"><Button Color="ButtonColor.Danger" @onclick="@ShowPop">Clear</Button></div>
+<br />
+
+<div align="right" class="pop-container">
+	@if (Show)
+	{
+		<div class="popconfirm">
+			Are you sure?
+			<button type="button" class="btn btn-warning" @onclick="() => Confirmation(false)">No</button>
+			<button type="button" class="btn btn-primary" @onclick="() => Confirmation(true)">Yes</button>
+		</div>
+
+	}
+</div>
+
+@code {
+	private int removeACustomer;
+
+	Customer customer = new Customer();
+
+	private List<Customer> listOfCustomers;
+	private List<ColumnDefinition> columnsDefinition;
+
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+
+		Initilize();
+
+	}
+
+	public void ReloadPage()
+	{
+		manager.NavigateTo(manager.Uri, true);
+	}
+
+	public void Initilize()
+	{
+		if(listOfCustomers == null)
+		{
+			listOfCustomers = customerService.CreateList();
+		}
+
+		if(columnsDefinition == null)
+		{
+			columnsDefinition = new List<ColumnDefinition>();
+			columnsDefinition.AddRange(
+			new ColumnDefinition[]{
+				new ColumnDefinition{DataField ="Id", Caption="Id", SortDirection=LibrarySystem.Configuration.SortDirection.Desc},
+				new ColumnDefinition{DataField= "Name", Caption= "Name", SortDirection=LibrarySystem.Configuration.SortDirection.Desc},
+				new ColumnDefinition{DataField="Address", Caption="Address", SortDirection=LibrarySystem.Configuration.SortDirection.Desc}
+			}
+			);
+		}
+	}
+
+	public void RemoveACustomer()
+	{
+		customerService.DeleteACustomer(removeACustomer);
+		ReloadPage();
+	}
+
+
+	public void HandleRegister(EditContext editContext)
+	{
+		var newCustomer = (Customer)editContext.Model;
+		customerService.AddCustomer(newCustomer);
+		ReloadPage();
+	}
+
+	public void RemoveAll()
+	{
+		customerService.DeleteCustomer();
+		ReloadPage();
+
+	}
+
+	#region PopUp
+
+	public bool Show { get; set; }
+	public EventCallback<bool> ConfirmedChanged { get; set; }
+
+	public async Task Confirmation(bool value)
+	{
+		Show = false;
+		if (value == true)
+		{
+			RemoveAll();
+
+		}
+
+		await ConfirmedChanged.InvokeAsync(value);
+	}
+
+	public void ShowPop()
+	{
+		Show = true;
+	}
+
+	#endregion
+}

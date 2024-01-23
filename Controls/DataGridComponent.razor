@@ -1,0 +1,153 @@
+﻿@using LibrarySystem.Services
+@using LibrarySystem.Data.Models
+@inject BookService bookService;
+
+@typeparam TItem
+
+
+
+
+<table class="table is-fullwidth">
+	<thead>
+		<tr>
+			@if(Columns == null || Columns.Count <= 0)
+			{
+				
+			}
+			else
+			{
+				foreach(var column in Columns)
+				{
+					<th @onclick="@(() => SortData(column))">
+						@column.Caption
+					</th>
+				}
+			}
+		</tr>
+	</thead>
+	<tbody>
+
+		@foreach (var item in DataItems.Skip(Paging.NumberOfItemsToSkip(CurrentPageNumber))
+				.Take(Paging.NumberOfItemsToTake(DataItems.Count)))
+		{
+			<tr>
+				
+				@foreach (var column in Columns)
+				{
+					<td>@typeof(TItem).GetProperty(column.DataField).GetValue(item)</td>
+				}
+			</tr>
+		}
+		
+	</tbody>
+</table>
+
+<br />
+<div class="level">
+	<div class="level-right"></div>
+	<div class="level-right">
+		<div class="level-item">
+			@if(Paging != null && Paging.Enabled)
+			{
+				@if (Paging.CustomePager)
+				{
+					@CustomPager
+				}
+				else
+				{
+					<div>
+					<span style ="font-size:14px; cursor:pointer"@onclick="GoToPrevPage"><b>&lt; Previous</b></span>
+					<span style ="font-size:12px; color:gray">&nbsp;&nbsp;Page @CurrentPageNumber of @Paging.MaxPageNumber(DataItems.Count)&nbsp;&nbsp;</span>
+					<span style="font-size:14px; cursor:pointer" @onclick="GoToNextPage"><b> Next &gt;</b></span>
+					</div>
+				}
+			}
+		</div>
+	</div>
+</div>
+
+@code {
+
+
+	[Parameter]
+	public List<TItem> DataItems{ get; set; }
+
+	[Parameter]
+	public List<ColumnDefinition> Columns { get; set; }
+
+	[Parameter]
+	public PagingConfig Paging { get; set; }
+
+	[Parameter]
+	public int CurrentPageNumber { get; set; } = 1;
+
+	[Parameter]
+	public RenderFragment CustomPager { get; set; }
+
+	protected override void OnParametersSet()
+	{
+		base.OnParametersSet();
+
+		SortData();
+
+	}
+
+	public void GoToPrevPage()
+	{
+		CurrentPageNumber = Paging.PrevPageNumber(CurrentPageNumber);
+	}
+	public void GoToNextPage()
+	{
+		CurrentPageNumber = Paging.NextPageNumber(CurrentPageNumber, DataItems.Count);
+
+	}
+
+
+
+	private void SortData(ColumnDefinition sortByColumn = null)
+	{
+
+		if (sortByColumn == null)
+		{
+			sortByColumn = Columns.FirstOrDefault(x => x.SortDirection != LibrarySystem.Configuration.SortDirection.NotSet);
+			if(sortByColumn == null)
+			{
+				return;
+			}
+		}
+		foreach(var column in Columns)
+		{
+			if(column.DataField != sortByColumn.DataField)
+			{
+				column.SortDirection = LibrarySystem.Configuration.SortDirection.NotSet;
+			}
+		}
+
+		switch (sortByColumn.SortDirection)
+		{
+		case LibrarySystem.Configuration.SortDirection.NotSet:
+				sortByColumn.SortDirection = LibrarySystem.Configuration.SortDirection.Asc;
+				break;
+			case LibrarySystem.Configuration.SortDirection.Asc:
+				sortByColumn.SortDirection = LibrarySystem.Configuration.SortDirection.Desc;
+				break;
+			case LibrarySystem.Configuration.SortDirection.Desc:
+				sortByColumn.SortDirection = LibrarySystem.Configuration.SortDirection.Asc;
+				break;
+			default:
+				sortByColumn.SortDirection = LibrarySystem.Configuration.SortDirection.Asc;
+				break;
+		}
+
+		if (sortByColumn.SortDirection == LibrarySystem.Configuration.SortDirection.Asc)
+		{
+			DataItems.Sort((x, y) => typeof(TItem).GetProperty(sortByColumn.DataField).GetValue(x).ToString()
+			.CompareTo(typeof(TItem).GetProperty(sortByColumn.DataField).GetValue(y).ToString()));
+		}
+		else
+		{
+			DataItems.Sort((x, y) => typeof(TItem).GetProperty(sortByColumn.DataField).GetValue(y).ToString()
+			.CompareTo(typeof(TItem).GetProperty(sortByColumn.DataField).GetValue(x).ToString()));
+		}
+	}
+}

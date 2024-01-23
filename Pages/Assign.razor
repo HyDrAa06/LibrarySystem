@@ -1,0 +1,183 @@
+﻿@page "/assign"
+@using LibrarySystem.Services
+@using LibrarySystem.Data.Models
+@inject BooksCustomerService booksCustomerService;
+@inject NavigationManager manager;
+
+<h3>Assign</h3>
+
+<br />
+<h4>Here you can assign books to a customer</h4>
+<br />
+
+
+<EditForm Model="@booksCustomer" OnValidSubmit="HandleSubmit">
+	<p>
+		<label for="BookId">Book Id:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp</label>
+		<InputNumber id="BookId" @bind-Value="@booksCustomer.BookId"></InputNumber>
+	</p>
+	<p>
+		<label for="CustomerId">Customer Id:</label>
+		<InputNumber id="CustomerId" @bind-Value="@booksCustomer.CustomerId"></InputNumber>
+	</p>
+	<p>
+		<button type="submit" class="btn-primary" @onclick="StateHasChanged">Register</button>
+	</p>
+</EditForm>
+
+<div align="left" class="pop-container">
+	@if (ShowIds)
+	{
+		<div class="popconfirm" style="color:red">
+			Invalid Ids!
+		</div>
+	}
+</div>
+
+<br />
+<br />
+<h3>Remove a relation</h3>
+<br />
+
+<EditForm Model="@relationToRemoveId" OnValidSubmit="()=>booksCustomerService.DeleteARelationViaId(relationToRemoveId)">
+	<p>
+		<label for="IdInput">Customer Id:</label>
+		<InputNumber id="IdInput" @bind-Value="@relationToRemoveId"></InputNumber>
+	</p>
+
+</EditForm>
+
+<br />
+<br />
+
+<table class="table table-striped table-bordered" align="center">
+	<thead align="center">
+		<tr>
+			<th>Name</th>
+			<th>Books</th>
+		</tr>
+	</thead>
+	<tbody align="center">
+		@foreach (var item in booksCustomerService.CreateCustomersList().Distinct())
+		{
+			<tr>
+				<td>@item.Name</td>
+				<td>
+				@foreach(var book in booksCustomerService.BooksToACustomerList(item).Distinct())
+				{
+						if (book.Id != booksCustomerService.BooksToACustomerList(item).Distinct().Count())
+						{
+							@book.Title <text>, </text>
+
+						}
+						else
+						{
+							@book.Title
+						}
+					}
+				</td>
+			</tr>
+		}
+	</tbody>
+</table>
+
+<br/>
+<br/>
+
+<div align="right">
+	
+	<Button Color="ButtonColor.Danger" @onclick="@ShowPopForRemovingRelations">Clear</Button>
+	
+	@if (ShowForRelations)
+	{
+		<br />
+		<br/>
+		<div class="popconfirm">
+			Are you sure?
+			<button type="button" class="btn btn-warning" @onclick="() => ConfirmationForRemovingRelations(false)">No</button>
+			<button type="button" class="btn btn-primary" @onclick="() => ConfirmationForRemovingRelations(true)">Yes</button>
+		</div>
+	}
+</div>
+
+
+@code {
+
+	BooksCustomer booksCustomer = new BooksCustomer();
+
+	private int relationToRemoveId;
+
+	public async void HandleSubmit(EditContext editContext)
+	{
+		var newBooksCustomer = (BooksCustomer)editContext.Model;
+		if(booksCustomerService.AddBooksCustomer(booksCustomerService
+			.CheckId(newBooksCustomer.BookId, newBooksCustomer.CustomerId)) == true)
+		{
+			ReloadPage();
+		}
+		else
+		{
+			ShowPopForInvalidIds();
+		}
+	}
+
+	public void SetToTrue()
+	{
+		booksCustomerService.DeleteAllRelations();
+		foreach (var item in booksCustomerService.CreateCustomersList().Distinct())
+		{
+			foreach (var book in booksCustomerService.BooksToACustomerList(item).Distinct())
+			{
+				book.Available = true;
+			}
+		}
+	}
+
+	public void ReloadPage()
+	{
+		manager.NavigateTo(manager.Uri, true);
+	}
+
+	#region PopUpForInvalidIds
+
+	public bool ShowIds { get; set; }
+	public EventCallback<bool> ConfirmedChangedIds { get; set; }
+
+	public async Task ConfirmationForId(bool value)
+	{
+		ShowIds = false;
+
+		await ConfirmedChangedIds.InvokeAsync(value);
+	}
+
+	public void ShowPopForInvalidIds()
+	{
+		ShowIds = true;
+	}
+
+	#endregion
+
+	#region PopUp
+
+	public bool ShowForRelations { get; set; }
+	public EventCallback<bool> ConfirmedChanged { get; set; }
+
+	public async Task ConfirmationForRemovingRelations(bool value)
+	{
+		ShowForRelations = false;
+		if (value == true)
+		{
+			SetToTrue();
+
+		}
+
+		await ConfirmedChanged.InvokeAsync(value);
+	}
+
+	public void ShowPopForRemovingRelations()
+	{
+		ShowForRelations = true;
+	}
+
+	#endregion
+}

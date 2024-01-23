@@ -1,0 +1,156 @@
+﻿@page "/books"
+@using LibrarySystem.Services
+@using LibrarySystem.Data.Models
+@inject BookService bookService;
+@inject NavigationManager manager;
+
+<h3>Books</h3>
+<br />
+<h4>Here you can register books</h4>
+<br />
+
+<EditForm Model="@book" OnValidSubmit="HandleRegister">
+	<p>
+		<label for="Title">Title:&nbsp;&nbsp;&nbsp;&nbsp;</label>
+		<InputText id="Title" @bind-Value="@book.Title"></InputText>
+	</p>
+	<p>
+		<label for="Author">Author:</label>
+		<InputText id="Author" @bind-Value="@book.Author"></InputText>
+	</p>
+	<p>
+		<button type="submit" @onclick="StateHasChanged">Register</button>
+	</p>
+</EditForm>
+
+<br />
+<h3>Remove a book</h3>
+<br />
+
+<EditForm Model="@removeBook" OnValidSubmit="RemoveABook">
+	<p>
+		<label for="IdInput">Id:</label>
+		<InputNumber id="IdInput" @bind-Value="@removeBook"></InputNumber>
+	</p>
+
+</EditForm>
+
+<DataGridComponent TItem="Book"
+				   DataItems="listOfBooks"
+				   Columns="columnsDefinition"
+				   Paging="@(new PagingConfig
+				   {
+						Enabled = true,
+						CustomePager = false,
+						PageSize = 5
+				   })">
+</DataGridComponent>
+
+<br />
+<div align="right"><Button Color="ButtonColor.Danger" @onclick="@ShowPop">Clear</Button></div>
+<br />
+
+<div align="right" class="pop-container">
+	@if (Show)
+	{
+		<div class="popconfirm">
+			Are you sure?
+			<button type="button" class="btn btn-warning" @onclick="() => Confirmation(false)">No</button>
+			<button type="button" class="btn btn-primary" @onclick="() => Confirmation(true)">Yes</button>
+		</div>
+
+	}
+</div>
+
+@code {
+
+	Book book = new Book();
+
+	private List<Book> listOfBooks;
+	private List<ColumnDefinition> columnsDefinition;
+
+	private int removeBook;
+
+	public async void HandleRegister(EditContext editContext)
+	{
+		var newBook = (Book)editContext.Model;
+		bookService.AddBook(newBook);
+		ReloadPage();
+
+	}
+
+	public void ReloadPage()
+	{
+		manager.NavigateTo(manager.Uri, true);
+	}
+
+	public void RemoveABook()
+	{
+		bookService.DeleteABook(removeBook);
+		ReloadPage();
+	}
+
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+
+		Initilize();
+	}
+
+	public void Initilize()
+	{
+		if (listOfBooks == null)
+		{
+			listOfBooks = bookService.CreateList();
+		}
+
+		if (columnsDefinition == null)
+		{
+			columnsDefinition = new List<ColumnDefinition>();
+			columnsDefinition.AddRange(
+			new ColumnDefinition[]{
+				new ColumnDefinition{DataField ="Id", Caption="Id", SortDirection=LibrarySystem.Configuration.SortDirection.Desc},
+				new ColumnDefinition{DataField= "Title", Caption= "Title", SortDirection=LibrarySystem.Configuration.SortDirection.Desc},
+				new ColumnDefinition{DataField= "Author", Caption= "Author", SortDirection=LibrarySystem.Configuration.SortDirection.Desc},
+				new ColumnDefinition{DataField="Available", Caption="Available"}
+			}
+			);
+		}
+	}
+
+	public void RemoveAll()
+	{
+		bookService.DeleteBooks();
+		ReloadPage();
+	}
+
+	#region PopUp
+
+	public bool Show { get; set; }
+	public EventCallback<bool> ConfirmedChanged { get; set; }
+
+	public async Task Confirmation(bool value)
+	{
+		Show = false;
+		if (value == true)
+		{
+			RemoveAll();
+
+		}
+
+		await ConfirmedChanged.InvokeAsync(value);
+	}
+
+	public void ShowPop()
+	{
+		Show = true;
+	}
+
+	#endregion
+
+
+
+}
+
+
+

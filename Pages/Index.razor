@@ -1,0 +1,23 @@
+﻿@page "/"
+@inject NavigationManager navManager
+
+<PageTitle>Index</PageTitle>
+
+<h1>Welcome to our Library system!</h1>
+
+<br />
+<h4>If you want to manage your library with ease, our system is perfect for you.</h4>
+<br />
+
+<p>The functionalities we offer are:</p>
+<p>1.Registering books and customers</p>
+<p>2.Assigning books to a customer</p>
+<p>3.Returning the books from a customer</p>
+<p>4.Displaying information about all books and customers</p>
+
+<br />
+<br />
+<div align="center">
+	<Button Color="ButtonColor.Primary" @onclick="@(()=>navManager.NavigateTo("/books"))">Books</Button>&nbsp;
+	<Button Color="ButtonColor.Primary" @onclick="@(()=>navManager.NavigateTo("/customers"))">Customers</Button>
+</div>
