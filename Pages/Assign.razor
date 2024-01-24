@@ -65,9 +65,9 @@
 				<td>
 				@foreach(var book in booksCustomerService.BooksToACustomerList(item).Distinct())
 				{
-						if (book.Id != booksCustomerService.BooksToACustomerList(item).Distinct().Count())
+						if (booksCustomerService.BooksToACustomerList(item).Distinct().Count()> 1 && book.Id != booksCustomerService.BooksToACustomerList(item).First().Id)
 						{
-							@book.Title <text>, </text>
+							<text>, </text> @book.Title
 
 						}
 						else
